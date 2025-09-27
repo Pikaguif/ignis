@@ -9,46 +9,51 @@ from ignis.gobject import IgnisProperty, IgnisSignal
 
 from ignis.base_service import BaseService
 from ignis import widgets
+from ignis.services.session_lock import PamPasswordEntry
 
 class SessionLockService(BaseService):
 
     def __init__(self):
         super().__init__()
         self._lock_instance = SessionLock.Instance.new()
-        self._is_locked: bool  = False #It should always be locked when the session lock is created
-        self._focused_window: widgets.Window | None  = None
-
+        self._is_locked: bool  = False
+        self._entry_buffer: Gtk.PasswordEntryBuffer | None = None
         self._lock_instance.connect('monitor', self._on_monitor) #Testing
 
     @IgnisProperty
     def is_locked(self):
         return self._is_locked
 
-    def lock_session(self):
-        self._lock_instance.lock()
-        print(self._lock_instance.is_locked())
+    @is_locked.setter
+    def is_locked(
+        self, 
+        locked: bool
+    ) -> None:
+        if locked and not self._lock_instance.is_locked():
+            self._lock_instance.lock()
+        elif not locked and self._lock_instance.is_locked():
+            self._lock_instance.unlock()
 
-    def unlock_session(self):
-        self._lock_instance.unlock()
-        print(self._lock_instance.is_locked())
+    def lock_session(self, window):
+        if not self._lock_instance.is_locked():
+            self._focused_window = window
+            self._entry_buffer = Gtk.PasswordEntryBuffer()
+            self._lock_instance.lock()
 
-    #Testing - To be removed prior to PR
-    def _on_monitor(self, lock_instance, monitor):
-        window = Gtk.Window()
+    def unlock_session(self, *_):
+        if self._lock_instance.is_locked():
+            self._lock_instance.unlock()
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_halign(Gtk.Align.CENTER)
-        box.set_valign(Gtk.Align.CENTER)
-        window.set_child(box)
+            self._entry_buffer = None
 
-        label = Gtk.Label(label="GTK Session Lock with Python")
-        box.append(label)
+    def add_password_entry_child(self, **kwargs) -> PamPasswordEntry:
+        password_entry = PamPasswordEntry(**kwargs)
+        password_entry.connect("unlock-session",self.unlock_session)
+        password_entry.buffer = self._entry_buffer
+        
+        return password_entry
 
-        button = Gtk.Button(label='Unlock')
-        button.connect('clicked', self._on_unlock_clicked)
-        box.append(button)
-
-        self._lock_instance.assign_window_to_monitor(window, monitor)
-
-    def _on_unlock_clicked(self, button):
-        self._lock_instance.unlock()
+    def _on_monitor(self, lock, monitor):
+        win = self._focused_window()
+    
+        self._lock_instance.assign_window_to_monitor(win, monitor)
