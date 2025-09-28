@@ -1,17 +1,26 @@
 from gi.repository import Gtk
+from gi.repository.GdkPixbuf import Pixbuf
+
 from ignis import utils
 from ignis.base_widget import BaseWidget
 from ignis.gobject import IgnisProperty, IgnisSignal
 from ignis.widgets import Entry
+
 import pam
 import os
 import asyncio
 
-class PamPasswordEntry(Gtk.PasswordEntry, BaseWidget):
+class PamPasswordEntry(Gtk.Entry, BaseWidget):
 
     def __init__(self, **kwargs):
-        Gtk.PasswordEntry.__init__(self)
+        Gtk.Entry.__init__(self)
         BaseWidget.__init__(self, **kwargs)
+
+        self.visibility = False
+        
+        self.secondary_icon_name = "view-reveal-symbolic.symbolic"
+        self.secondary_icon_activatable = True
+        self.connect("icon-press",self._handle_reveal)
 
         self._pam_status = "normal"
 
@@ -30,6 +39,7 @@ class PamPasswordEntry(Gtk.PasswordEntry, BaseWidget):
         return self._pam_status
 
     async def check_pam_async(self):
+        print("Checking PAM")
         username = os.getlogin()
 
         self._pam_status = "checking"
@@ -40,3 +50,14 @@ class PamPasswordEntry(Gtk.PasswordEntry, BaseWidget):
             self.emit("unlock-session")
         else:
             self.delete_text(0, -1)
+
+    def _handle_reveal(self, entry, pos):
+        if not pos:
+            return
+
+        if self.visibility:
+            self.secondary_icon_name = "view-reveal-symbolic.symbolic"
+            self.visibility = False
+        else:
+            self.secondary_icon_name = "view-conceal-symbolic.symbolic"
+            self.visibility = True
