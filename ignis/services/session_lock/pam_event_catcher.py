@@ -1,4 +1,4 @@
-from gi.repository import Gtk
+from gi.repository import Gtk 
 from gi.repository.GdkPixbuf import Pixbuf
 
 from ignis import utils
@@ -16,17 +16,18 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
         Gtk.Entry.__init__(self)
         BaseWidget.__init__(self, **kwargs)
 
+        self.visible = True
         self.visibility = False
+        self.connect("activate", lambda x: asyncio.create_task(self.check_pam_async()))
+        self._pam_status = "normal"
         
         self.secondary_icon_name = "view-reveal-symbolic.symbolic"
         self.secondary_icon_activatable = True
         self.connect("icon-press",self._handle_reveal)
 
-        self._pam_status = "normal"
-
-        self.connect("activate", lambda x: asyncio.create_task(self.check_pam_async()))
-
-        self.grab_focus()
+        self.focus_controller = Gtk.EventControllerFocus()
+        self.add_controller(self.focus_controller)
+        self.focus_controller.connect("notify::contains-focus", lambda x, y: asyncio.create_task(self._keep_focus()))
     
     @IgnisSignal
     def unlock_session(self):
@@ -52,6 +53,7 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
             self.delete_text(0, -1)
 
     def _handle_reveal(self, entry, pos):
+        
         if not pos:
             return
 
@@ -61,3 +63,7 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
         else:
             self.secondary_icon_name = "view-conceal-symbolic.symbolic"
             self.visibility = True
+
+    async def _keep_focus(self, *_):
+        if not self.focus_controller.contains_focus():
+            self.grab_focus_without_selecting()
