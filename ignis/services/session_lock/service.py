@@ -49,11 +49,14 @@ class SessionLockService(BaseService):
             self._lock_instance.unlock()
             self._entry_buffer = None
 
-    def add_password_entry_child(self, **kwargs) -> PamPasswordEntry:
-        password_entry = PamPasswordEntry(**kwargs)
+    def add_password_entry_child(self, use_common_buffer: bool, force_keep_focus: bool,  **kwargs) -> PamPasswordEntry:
+        password_entry = PamPasswordEntry(force_keep_focus=force_keep_focus, **kwargs)
         password_entry.connect("unlock-session",self.unlock_session)
-        password_entry.buffer = self._entry_buffer
-        
+        if use_common_buffer:
+            password_entry.buffer = self._entry_buffer
+        else:
+            password_entry.buffer = Gtk.PasswordEntryBuffer()
+                
         return password_entry
 
     def _on_monitor(self, lock, monitor):

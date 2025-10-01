@@ -12,7 +12,10 @@ import asyncio
 
 class PamPasswordEntry(Gtk.Entry, BaseWidget):
 
-    def __init__(self, **kwargs):
+    __gtype_name__ = "IgnisPamPasswordEntry"
+    __gproperties__ = {**BaseWidget.gproperties}
+
+    def __init__(self, force_keep_focus:bool, **kwargs):
         Gtk.Entry.__init__(self)
         BaseWidget.__init__(self, **kwargs)
 
@@ -24,10 +27,12 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
         self.secondary_icon_name = "view-reveal-symbolic.symbolic"
         self.secondary_icon_activatable = True
         self.connect("icon-press",self._handle_reveal)
-
-        self.focus_controller = Gtk.EventControllerFocus()
-        self.add_controller(self.focus_controller)
-        self.focus_controller.connect("notify::contains-focus", lambda x, y: asyncio.create_task(self._keep_focus()))
+        
+        if force_keep_focus:
+            self.focus_controller = Gtk.EventControllerFocus()
+            self.add_controller(self.focus_controller)
+            self.focus_controller.connect("notify::contains-focus", lambda x, y: asyncio.create_task(self._keep_focus()))
+            self.grab_focus()
     
     @IgnisSignal
     def unlock_session(self):
@@ -40,20 +45,24 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
         return self._pam_status
 
     async def check_pam_async(self):
-        print("Checking PAM")
-        username = os.getlogin()
-
         self._pam_status = "checking"
+        self.notify("pam-status")
+        
+        username = os.getlogin()
 
         ok = pam.authenticate(username, self.get_text())
 
         if ok:
+            self._pam_status = "success"
+            self.notify("pam-status")
             self.emit("unlock-session")
         else:
+            self._pam_status = "fail"
+            self.notify("pam-status")
             self.delete_text(0, -1)
+            utils.Timeout(ms=2_000, target=lambda: self._reset_pam_status())
 
-    def _handle_reveal(self, entry, pos):
-        
+    def _handle_reveal(self, entry, pos): 
         if not pos:
             return
 
@@ -67,3 +76,7 @@ class PamPasswordEntry(Gtk.Entry, BaseWidget):
     async def _keep_focus(self, *_):
         if not self.focus_controller.contains_focus():
             self.grab_focus_without_selecting()
+
+    def _reset_pam_stauts(self):
+        self._pam_status = "normal"
+        self.notify("pam-status")
