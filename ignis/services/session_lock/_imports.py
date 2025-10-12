@@ -1,15 +1,14 @@
 import gi
-import sys
-from ignis.exceptions import GvcNotFoundError
+
+from ignis.exceptions import PythonPAMNotFound
 from ignis import is_sphinx_build
 
-# Gvc is here just for example.
 try:
-    if not is_sphinx_build:  
-        gi.require_version("pam", "2.0.2")
-        gi.require_version("six", "1.17.0")
+    if not is_sphinx_build:
+        gi.require_version("Gtk4SessionLock", "1.0")
+    from gi.repository import Gtk4SessionLock #type: ignore
     import pam  # type: ignore
 except (ImportError, ValueError):
-    raise GvcNotFoundError() from None
+    raise PythonPAMNotFound() from None
 
-__all__ = ["pam"]
+__all__ = ["pam", "Gtk4SessionLock"]

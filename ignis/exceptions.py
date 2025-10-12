@@ -569,3 +569,49 @@ class AppNotInitializedError(Exception):
         super().__init__(
             "Called IgnisApp.get_initialized(), but IgnisApp is not initialized!", *args
         )
+
+
+class PythonPAMNotFound(Exception):
+    """
+    Raised when the python-pam module is not found.
+    """
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(
+            "python-pam module not found! To use password session unlock, install python-pam. \nIf you have installed python-pam from pip, ensure six is installed, as it's an undeclared dependency in pip",
+            *args,
+        )
+
+
+class SessionLockUnsupported(Exception):
+    """
+    Raised if the current compositor does not support session lock protocol.
+    """
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(
+            "Current compositor does not support ext-session-lock-v1, so it doesn't allow session locking!"
+        )
+
+
+class WindowAlreadyRealized(Exception):
+    """
+    Raised if window constructor in monitor assignment results in a realized window.
+    """
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(
+            "Window class definition results in a realized window! Set window visibility to false in its super().__init__()"
+        )
+
+
+class WindowMisconfigured(Exception):
+    """
+    Raised if the window to be assigned is misconfigured for all cases but the previous one.
+    This is raised alongside and session unlock to avoid session being permanently locked.
+    """
+
+    def __init__(self, *args: object) -> None:
+        super().__init__(
+            "Error during creation of window, aborting session lock to ensure session doesn't become unlockable! Spawn window manually to get detailed error log."
+        )
