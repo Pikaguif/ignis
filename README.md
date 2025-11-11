@@ -1,3 +1,8 @@
+# Important notice
+This is a soft fork of Ignis that I only intend for personal use. It features all the different changes I've done, both those that have PR submitted, or those that I'm currently testing.
+
+I'm keeping this repository until the main ignis repository recovers its activity, but for now, I have too many things I need for my config to work, which I'd like to use.
+
 # Ignis
 
 [![docs](https://github.com/ignis-sh/ignis/actions/workflows/latest_docs.yaml/badge.svg)](https://github.com/ignis-sh/ignis/actions/workflows/latest_docs.yaml)
